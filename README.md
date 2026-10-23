@@ -61,17 +61,6 @@ python3 -m http.server 8000
 
 and visit `http://localhost:8000`.
 
-## Project structure
-
-```text
-phishing-hunter/
-├── index.html      # the whole game: markup, styles and logic
-├── assets/
-│   └── cover.png   # cover image used in this README and on itch.io
-├── LICENSE
-└── README.md
-```
-
 ## Add your own messages
 
 All messages live in the `M` array near the top of the script in `index.html`. Each message is one object:
@@ -99,14 +88,10 @@ The game currently ships with 16 messages, 8 phishing and 8 safe, shuffled each 
 
 All sender names, addresses and links in the game are fictional examples made for training. Brand names are used only to illustrate common scams, and no real emails are sent or collected.
 
-## AI disclosure
-
-The code, the email scenarios and the cover image were created with the help of an AI assistant (Claude by Anthropic) and reviewed and published by the author.
-
 ## License
 
 Released under the [MIT License](LICENSE).
 
 ## Author
 
-Made by **Adithyan** ([@Brook-106](https://github.com/Brook-106)), a cybersecurity student.
+Made by **Adithyan** ([@Brook-106](https://github.com/Brook-106)),
