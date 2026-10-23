@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phishing Hunter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f5;--paper:#fff;--ink:#1b2430;--muted:#5b6778;--line:#d7dde6;--accent:#2f5bd8;
+  --safe:#1c7c4d;--safe-bg:#e0f3e8;--phish:#c4352b;--phish-bg:#fbe5e2;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#141a22;--paper:#1d2530;--ink:#e8edf3;--muted:#9aa7b8;--line:#2d3846;--accent:#7f9cf5;--safe:#5fcf93;--safe-bg:#173528;--phish:#ff7b6f;--phish-bg:#3a1f1d}
+}
+:root[data-theme="dark"]{--bg:#141a22;--paper:#1d2530;--ink:#e8edf3;--muted:#9aa7b8;--line:#2d3846;--accent:#7f9cf5;--safe:#5fcf93;--safe-bg:#173528;--phish:#ff7b6f;--phish-bg:#3a1f1d}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);min-height:100vh}
+main{max-width:560px;margin:0 auto;padding:20px 16px 32px}
+h1{font-size:2rem;line-height:1.15;margin:8px 0 12px;letter-spacing:-.01em}
+p{margin:0 0 12px}
+.muted{color:var(--muted);font-size:.9rem}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:14px 18px;font-weight:600;color:#fff;background:var(--accent)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px}
+.rules{margin:0 0 18px;padding-left:20px}
+.rules li{margin-bottom:6px}
+.hud{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-weight:600}
+.hud small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.lives{color:var(--phish);letter-spacing:.15em;font-size:1.2rem}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:14px}
+#fill{display:block;height:100%;width:100%;background:var(--accent)}
+.mail{padding:0;overflow:hidden}
+.mhead{display:flex;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);align-items:center}
+.av{flex:none;width:42px;height:42px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-weight:600}
+.from{font-weight:600}
+.addr{font-family:var(--mono);font-size:.85rem;color:var(--muted);word-break:break-all}
+.mbody{padding:16px 18px}
+.subj{font-size:1.1rem;font-weight:600;margin:0 0 10px}
+.txt{white-space:pre-line;margin:0 0 14px}
+.lnk{display:inline-block;color:var(--accent);text-decoration:underline;font-weight:500}
+.status{margin-top:12px;padding:8px 10px;border-radius:8px;background:var(--bg);font-family:var(--mono);font-size:.8rem;word-break:break-all}
+.status b{font-family:var(--sans);font-weight:500;color:var(--muted)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+#bSafe{background:var(--safe)}
+#bPhish{background:var(--phish)}
+.fb{padding:16px 18px}
+.stamp{display:inline-block;border:3px solid;border-radius:6px;padding:2px 12px;font-weight:600;font-size:1.4rem;letter-spacing:.08em;transform:rotate(-4deg);margin-bottom:10px;animation:pop .22s ease-out}
+.stamp.s{color:var(--safe);background:var(--safe-bg)}
+.stamp.p{color:var(--phish);background:var(--phish-bg)}
+@keyframes pop{from{transform:rotate(-4deg) scale(1.6);opacity:0}to{transform:rotate(-4deg) scale(1);opacity:1}}
+.verdict{font-weight:600;margin:0 0 4px}
+.big{font-size:3rem;font-weight:600;line-height:1;margin:6px 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <section id="start" class="card">
+    <h1>Phishing Hunter</h1>
+    <p>Read each message like a careful inbox owner. Is it safe, or is it a phishing attempt?</p>
+    <ul class="rules">
+      <li>Check the sender address and where the link really goes.</li>
+      <li>You have 3 lives. A wrong answer or a timeout costs one.</li>
+      <li>Streaks and quick answers score more. The timer gets shorter as you go.</li>
+    </ul>
+    <button id="go">Start hunting</button>
+    <p class="muted" style="margin-top:14px">Best score: <span id="best0">0</span>. On a keyboard: left arrow for Safe, right arrow for Phish, Enter for the next message.</p>
+  </section>
+
+  <section id="play" hidden>
+    <div class="hud">
+      <div><span id="score">0</span><small>score</small></div>
+      <div><span id="streak">0</span><small>streak</small></div>
+      <div><span class="lives" id="lives" aria-label="lives"></span><small>lives</small></div>
+    </div>
+    <div class="bar"><i id="fill"></i></div>
+    <article class="card mail" aria-live="polite">
+      <div class="mhead">
+        <div class="av" id="av"></div>
+        <div><div class="from" id="from"></div><div class="addr" id="addr"></div></div>
+      </div>
+      <div class="mbody">
+        <h2 class="subj" id="subj"></h2>
+        <p class="txt" id="txt"></p>
+        <div id="lwrap"><span class="lnk" id="ltxt"></span>
+          <div class="status"><b>Link goes to:</b> <span id="lurl"></span></div>
+        </div>
+      </div>
+    </article>
+    <div class="acts">
+      <button id="bSafe">Safe</button>
+      <button id="bPhish">Phish</button>
+    </div>
+    <section class="card fb" id="fb" hidden aria-live="assertive">
+      <div class="stamp" id="stamp"></div>
+      <p class="verdict" id="verdict"></p>
+      <p id="why"></p>
+      <button id="nxt">Next message</button>
+    </section>
+  </section>
+
+  <section id="over" class="card" hidden>
+    <h1>Inbox closed</h1>
+    <div class="big" id="fscore">0</div>
+    <p class="muted">points</p>
+    <p id="fline"></p>
+    <button id="again">Play again</button>
+  </section>
+</main>
+
+<script>
+var M=[
+{f:"PayPal Support",a:"service@paypa1-secure.com",s:"Your account has been limited",b:"We noticed unusual activity on your account. To restore full access, confirm your details within 24 hours or your account will stay limited.",l:"Restore my account",u:"http://paypa1-secure.com/verify",p:true,w:"The domain is paypa1-secure.com, with the number 1 in place of the letter l. It is not paypal.com, and the message pushes a 24-hour deadline."},
+{f:"Netflix Billing",a:"billing@netfIix-support.co",s:"Payment declined: update now to keep watching",b:"Your last payment failed. Update your card today or your membership will be cancelled.",l:"Update payment",u:"https://netfIix-support.co/billing",p:true,w:"The domain uses a capital I where the l in netflix should be, and ends in .co. When in doubt, open the app yourself instead of using the link."},
+{f:"State Bank KYC",a:"alerts@sbi-kyc-update.in",s:"Final notice: KYC expired, account will be blocked",b:"Dear customer, your KYC has expired. Your account will be blocked today. Update immediately using the link below.",l:"Update KYC now",u:"http://bit.ly/3kYcUpd",p:true,w:"Banks do not block accounts by email, the domain is not the bank’s own, and the shortened bit.ly link hides where it really goes."},
+{f:"IT Helpdesk",a:"it-support@campus-helpdesk.xyz",s:"Password expires today",b:"Your mailbox password expires in 2 hours. Sign in below to keep your email.",l:"Sign in to keep my email",u:"http://campus-helpdesk.xyz/login.php",p:true,w:"A sign-in page on an unrelated .xyz domain plus a short deadline is a classic password trap. Real IT teams send you to their official portal."},
+{f:"Amazon Delivery",a:"track@amzn-delivery-track.top",s:"Parcel on hold: pay ₹29 customs fee",b:"We could not deliver your parcel. Pay a small fee to release it for redelivery.",l:"Pay ₹29",u:"http://amzn-delivery-track.top/pay",p:true,w:"The .top domain only imitates Amazon’s name. Tiny fee requests are a common way to collect card details."},
+{f:"Rahul Menon (CEO)",a:"rahul.menon.ceo@gmail.com",s:"Are you free? Quick favour",b:"I am in a meeting and cannot talk. I need 5 gift cards of ₹5,000 urgently. Reply here and I will explain. Keep this between us.",l:"",u:"",p:true,w:"A boss writing from a free Gmail address and asking for gift cards, urgency and secrecy is a well-known impersonation scam. Confirm by calling them."},
+{f:"Microsoft Account Team",a:"no-reply@micros0ft-online.com",s:"Unusual sign-in activity",b:"Someone signed in from another country. If this was not you, secure your account now.",l:"Review activity",u:"https://micros0ft-online.com/secure",p:true,w:"The domain has a zero in place of the letter o. A real alert would point to a genuine Microsoft address."},
+{f:"Income Tax Department",a:"refund@incometax-gov-refund.in",s:"Refund of ₹18,450 approved",b:"Your income tax refund is ready. Enter your bank details to receive it within 2 days.",l:"Claim refund",u:"http://incometax-gov-refund.in/claim",p:true,w:"The official site is incometax.gov.in, and refunds go to the account already on file. No one needs your bank details through an emailed link."},
+{f:"GitHub",a:"noreply@github.com",s:"New sign-in from Chrome on Windows",b:"We noticed a sign-in to your account just now. If this was you, no action is needed.",l:"Review security settings",u:"https://github.com/settings/security",p:false,w:"Sender and link are both on github.com, nothing asks for your password, and there is no forced deadline. You can still open the site yourself to check."},
+{f:"Amazon.in",a:"auto-confirm@amazon.in",s:"Your order has been placed",b:"Thanks for your order. We will let you know when it ships. You can check status anytime in Your Orders.",l:"View order",u:"https://www.amazon.in/your-orders",p:false,w:"The domain is exactly amazon.in, the message only informs you, and nothing asks for payment or login details."},
+{f:"Examination Office",a:"exams@city-university.ac.in",s:"Semester timetable published",b:"The timetable for the upcoming semester exams is now on the university website. Please check your registration details there.",l:"View timetable",u:"https://city-university.ac.in/exams",p:false,w:"An expected notice from a consistent official domain, linking to that same domain, with no pressure and no request for personal data."},
+{f:"Anjali",a:"anjali.k@gmail.com",s:"Notes for Friday",b:"Hey, here are the OS notes you asked for. I will bring the printed copy too. See you at 9!",l:"",u:"",p:false,w:"A friend you know replying to something you asked for, with no links to open and no request for money or details."},
+{f:"Google",a:"no-reply@accounts.google.com",s:"Security alert",b:"Your Google Account was just signed in to on a new device. Check activity if you do not recognise it.",l:"Check activity",u:"https://myaccount.google.com/notifications",p:false,w:"Both addresses are genuine Google domains, and the message does not ask you to type anything in."},
+{f:"TryHackMe",a:"noreply@tryhackme.com",s:"New room this week: Network basics",b:"A new beginner room just launched. Log in to your account when you are ready to try it.",l:"See the rooms",u:"https://tryhackme.com/rooms",p:false,w:"A newsletter from a service you use, sent from the exact domain tryhackme.com, with nothing urgent."},
+{f:"Zoom",a:"no-reply@zoom.us",s:"Reminder: Study group starts in 30 minutes",b:"Your scheduled meeting begins soon. Join from the Zoom app or the link below.",l:"Join meeting",u:"https://zoom.us/j/84012345678",p:false,w:"zoom.us is Zoom’s real domain, the meeting is one you scheduled, and there is no demand for login details."},
+{f:"Spotify",a:"no-reply@spotify.com",s:"Your receipt from Spotify",b:"Thanks for staying with Spotify Premium. Your receipt for this month is below.",l:"Manage plan",u:"https://www.spotify.com/account",p:false,w:"A receipt from the exact domain spotify.com, linking to the same domain, and it asks nothing from you."}
+];
+var $=function(i){return document.getElementById(i)};
+var deck=[],cur,score=0,streak=0,lives=3,round=0,locked=true,limit=12,left=12,tick,best=0;
+try{best=+localStorage.getItem("ph-best")||0}catch(e){}
+$("best0").textContent=best;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function show(id){["start","play","over"].forEach(function(s){$(s).hidden=s!==id})}
+function hud(){$("score").textContent=score;$("streak").textContent=streak;$("lives").textContent="♥".repeat(Math.max(lives,0))+"♡".repeat(3-Math.max(lives,0))}
+function start(){score=0;streak=0;lives=3;round=0;deck=[];show("play");next()}
+function next(){
+  if(lives<=0){return end()}
+  if(!deck.length)deck=shuffle(M.slice());
+  cur=deck.pop();round++;
+  $("av").textContent=cur.f.charAt(0);
+  $("from").textContent=cur.f;$("addr").textContent=cur.a;
+  $("subj").textContent=cur.s;$("txt").textContent=cur.b;
+  $("lwrap").hidden=!cur.l;$("ltxt").textContent=cur.l;$("lurl").textContent=cur.u;
+  $("fb").hidden=true;$("bSafe").disabled=false;$("bPhish").disabled=false;
+  locked=false;limit=Math.max(5,12-Math.floor((round-1)/3));left=limit;
+  clearInterval(tick);var t0=Date.now();$("fill").style.width="100%";
+  tick=setInterval(function(){left=Math.max(0,limit-(Date.now()-t0)/1000);$("fill").style.width=(left/limit*100)+"%";if(left<=0)answer(null)},100);
+  hud();
+}
+function answer(c){
+  if(locked)return;locked=true;clearInterval(tick);
+  var ok=c!==null&&c===cur.p;
+  if(ok){streak++;score+=10+Math.min(streak,5)*2+Math.ceil(left)}else{streak=0;lives--}
+  var st=$("stamp");st.textContent=cur.p?"PHISH":"SAFE";st.className="stamp "+(cur.p?"p":"s");
+  $("verdict").textContent=ok?"Correct.":(c===null?"Time’s up.":"Not quite.");
+  $("why").textContent=cur.w;
+  $("nxt").textContent=lives<=0?"See results":"Next message";
+  $("bSafe").disabled=true;$("bPhish").disabled=true;
+  $("fb").hidden=false;hud();
+  $("fb").scrollIntoView({block:"nearest"});
+}
+function end(){
+  clearInterval(tick);
+  if(score>best){best=score;try{localStorage.setItem("ph-best",best)}catch(e){}}
+  $("fscore").textContent=score;
+  $("fline").textContent="You checked "+round+" messages. Best score: "+best+".";
+  $("best0").textContent=best;show("over");
+}
+$("go").onclick=start;$("again").onclick=start;
+$("bSafe").onclick=function(){answer(false)};
+$("bPhish").onclick=function(){answer(true)};
+$("nxt").onclick=next;
+document.addEventListener("keydown",function(e){
+  if($("play").hidden)return;
+  if(!locked){
+    if(e.key==="ArrowLeft"||e.key==="s"||e.key==="S"){e.preventDefault();answer(false)}
+    else if(e.key==="ArrowRight"||e.key==="p"||e.key==="P"){e.preventDefault();answer(true)}
+  }else if(e.key==="Enter"&&!$("fb").hidden){e.preventDefault();next()}
+});
+</script>
+</body>
+</html>
